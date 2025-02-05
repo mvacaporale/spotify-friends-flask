@@ -1,0 +1,54 @@
+[tool.isort]
+# Make imports look like Black formatting
+profile = "black"
+
+# Number of blank lines between import sections
+lines_after_imports = 2
+
+# Controls how long import lines can be
+line_length = 88
+
+# Sort by length within sections
+length_sort = true
+
+# Put imports on separate lines even if they'd fit on one
+force_single_line = true
+
+# Add comments showing import categories
+import_heading_stdlib = "Standard library imports"
+import_heading_thirdparty = "Third party imports"
+import_heading_firstparty = "Local imports"
+
+# Skip specific files/directories
+skip = ["venv", ".tox", "migrations"]
+
+# Define which imports are which type
+known_first_party = ["myproject", "mypackage"]
+known_third_party = ["numpy", "pandas"]
+
+
+[tool.black]
+# Maximum line length (default is 88)
+line-length = 88
+
+# Which Python versions to target
+target-version = ["py37", "py38", "py39", "py310"]
+
+# Files/directories to exclude
+exclude = '''
+/(
+    \.git
+    | \.venv
+    | venv
+    | \.env
+    | migrations
+    | build
+    | dist
+)/
+'''
+
+# Enable or disable string normalization
+skip-string-normalization = false
+
+# Enable or disable magic trailing comma
+skip-magic-trailing-comma = false
