@@ -1,0 +1,10 @@
+flask
+spotipy
+python-dotenv
+supabase
+flask_cors
+jwt
+pytest
+pytest-ordering
+isort
+black
