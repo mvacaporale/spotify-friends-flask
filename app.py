@@ -281,7 +281,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
     logger.setLevel(args.log_level)
 
-    app.run(debug=True)
+    app.run(debug=False)
 
 
 # ------------------ CORS Stuff -----------------
