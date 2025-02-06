@@ -74,6 +74,10 @@ def handle_new_follower_relationship():
         user1 = data["user1"]
         user2 = data["user2"]
 
+        # Return if the user has clicked their own follow link.
+        if user1 == user2:
+            return jsonify({"status": "null", "message": "User cannot follow themselves"}), 200
+
         # Retrieve their access tokens.
         access_token1 = get_user_access_token(user1)
         access_token2 = get_user_access_token(user2)
