@@ -257,12 +257,11 @@ def clear_playlist(access_token, playlist_id):
         raise Exception(f"Error clearing playlist: {e.response.json()}")
 
 
-def check_playlist_following(user_id, access_token, playlist_id):
+def check_playlist_following(access_token, playlist_id):
     """
     Check if a user follows a specific playlist
     
     Args:
-        user_id (str): Spotify user ID to check
         access_token (str): Spotify access token
         playlist_id (str): ID of the playlist to check
     

@@ -28,6 +28,7 @@ from utils import clear_playlist
 from utils import get_user_top_tracks
 from utils import add_tracks_to_playlist
 from utils import add_top_tracks_to_follower
+from utils import check_playlist_following
 
 
 load_dotenv()
@@ -96,18 +97,19 @@ def handle_new_follower_relationship():
 
         # Initiate follower relationship by following the playlists.
         #     public=False => the playlist will not be visible on their profile
-        follow_playlist(
-            access_token1, user2_toptracks, public=False
-        )
-        follow_playlist(
-            access_token2, user1_toptracks, public=False
-        )
+        if not check_playlist_following(access_token1, user2_toptracks):
+            print(f"New follower relationship: {user1} follows {user1}")
+            follow_playlist(
+                access_token1, user2_toptracks, public=False
+            )
+            add_top_tracks_to_follower(user2, user1)
+        if not check_playlist_following(access_token2, user1_toptracks):
+            print(f"New follower relationship: {user2} follows {user1}")
+            follow_playlist(
+                access_token2, user1_toptracks, public=False
+            )
+            add_top_tracks_to_follower(user1, user2)
 
-        # Add top tops and recs of for each user to the new user they follow.
-        add_top_tracks_to_follower(user1, user2)
-        add_top_tracks_to_follower(user2, user1)
-
-        print("New follower relationship b/w:", user1, user2)
         return (
             jsonify(
                 {
@@ -158,7 +160,8 @@ def handle_user_created():
             return (
                 jsonify(
                     {
-                        "status": "redundant",
+                        "status": "success",
+                        "message": "Playlists already exist for this user."
                     }
                 ),
                 200,
@@ -289,7 +292,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
     logger.setLevel(args.log_level)
 
-    app.run(debug=False)
+    app.run(debug=True)
 
 
 # ------------------ CORS Stuff -----------------
