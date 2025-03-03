@@ -60,6 +60,22 @@ def verify_supabase_webhook(request):
         return True
     except jwt.InvalidTokenError:
         return False
+    
+
+def follow_user(follower_user_id, target_user_id):
+    """Create a new follower relationship."""
+    try:
+        response = supabase.table("spotify_follows").upsert({
+            "follower_id": follower_user_id,
+            "following_id": target_user_id
+        }).execute()
+        
+        if response.data:
+            return response.data[0]
+        return None
+    except Exception as e:
+        print(f"Error following user: {e}")
+        raise e
 
 
 
@@ -103,12 +119,20 @@ def handle_new_follower_relationship():
                 access_token1, user2_toptracks, public=False
             )
             add_top_tracks_to_follower(user2, user1)
+
+            # Create follower relationship in supabase
+            follow_user(user1, user2)
+
         if not check_playlist_following(access_token2, user1_toptracks):
             print(f"New follower relationship: {user2} follows {user1}")
             follow_playlist(
                 access_token2, user1_toptracks, public=False
             )
             add_top_tracks_to_follower(user1, user2)
+            
+            # Create follower relationship in supabase
+            follow_user(user2, user1)
+
 
         return (
             jsonify(
