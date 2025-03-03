@@ -87,7 +87,7 @@ def handle_new_follower_relationship():
         user2_playlists = get_custom_playlists(user2)
 
         if user1_playlists is None or user2_playlists is None:
-            raise Exception("At least of the users are not in our database: "
+            raise Exception("At least one of the users are not in our database: "
                             f"playlists for user1 {user1_playlists is None}, "
                             f"playlists for user2 {user2_playlists is None}")
 
@@ -128,17 +128,13 @@ def handle_user_created():
     # TODO: Checking the request's Authorization?
     # verify_supabase_webhook(request)
 
-    # Get the entire webhook payload
-    webhook_data = request.json
+    # Access the user_id
+    user_id = request.json["user_id"]
 
-    # Access the user_id from the record
-    user_id = webhook_data["record"]["user_id"]
-
-    # Now you can use user_id
     print(f"User created with ID: {user_id}")
 
     try:
-        print("Let's make this guy a playlist.")
+
         user_email = (
             supabase.table("spotify_tokens")
             .select("email")
@@ -150,25 +146,33 @@ def handle_user_created():
         user_playlists = get_custom_playlists(user_id)
         access_token = get_user_access_token(user_id)
 
-        # Case 1: User playlists have not been made yet.
-        if user_playlists is None:
-            print("Creating new playlists for this user")
-            create_and_save_playlist(
-                user_id, user_email, access_token, playlist_type="individual"
-            )
-            create_and_save_playlist(
-                user_id, user_email, access_token, playlist_type="group"
-            )
-
-        # Case 2: User playlists have been made and we'll double check they're followed.
-        else:
+        # Case 1: User playlists have been made and we'll double check they're followed.
+        if user_playlists is not None:
+            print("We already have playlists made for this user.")
             follow_playlist(
                 access_token, user_playlists["individual_playlist"], public=True
             )
             follow_playlist(
                 access_token, user_playlists["group_playlist"], public=False
             )
-        
+            return (
+                jsonify(
+                    {
+                        "status": "redundant",
+                    }
+                ),
+                200,
+            )
+
+        # Case 2: User playlists have not been made yet.
+        print("Creating new playlists for this user")
+        create_and_save_playlist(
+            user_id, user_email, access_token, playlist_type="individual"
+        )
+        create_and_save_playlist(
+            user_id, user_email, access_token, playlist_type="group"
+        )
+    
         # Ensure playlists are created with zero songs added initially.
         user_playlists = get_custom_playlists(user_id)
         group_playlist = user_playlists["group_playlist"]
