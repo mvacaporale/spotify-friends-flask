@@ -1,9 +1,11 @@
 from supabase import create_client, Client
 from datetime import datetime
+import logging
 import requests
 import base64
 from urllib.parse import urlencode
 import os
+import sys
 
 from dotenv import load_dotenv
 
@@ -27,6 +29,16 @@ USER_PLAYLISTS = {
 }
 
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)
+
+
+# Configure basic logging
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(message)s",
+    handlers=[logging.StreamHandler(sys.stdout)],
+)
+
+logger = logging.getLogger("spotifriends")
 
 
 def refresh_access_token(client_id, client_secret, refresh_token):
@@ -712,3 +724,58 @@ class SpotifyAPI:
         )
         response.raise_for_status()
         return response.json()
+    
+
+def delete_user_and_data(user_id):
+    """
+    Deletes a user and their associated data from Supabase
+    
+    Args:
+        user_id (str): The UUID of the user to delete
+        
+    Returns:
+        dict: Result of the operation
+    """
+    try:
+        logger.info(f"Starting deletion process for user: {user_id}")
+
+        # Step 1a: Delete associated records from spotify_playlists table
+        playlists_result = supabase.table('spotify_playlists').delete().eq('user_id', user_id).execute()
+        if hasattr(playlists_result, 'error') and playlists_result.error:
+            raise Exception(f"Error deleting spotify_playlists: {playlists_result.error}")
+        logger.info(f"Deleted associated playlist records for user: {user_id}")
+
+        # Step 1b: Delete associated records from follow-relationship table.
+        follower_result = supabase.table('spotify_follows').delete().eq('follower_id', user_id).execute()
+        if hasattr(follower_result, 'error') and follower_result.error:
+            raise Exception(f"Error deleting from spotify_follows: {playlists_result.error}")
+
+        following_result = supabase.table('spotify_follows').delete().eq('following_id', user_id).execute()
+        if hasattr(following_result, 'error') and following_result.error:
+            raise Exception(f"Error deleting from spotify_follows: {playlists_result.error}")
+        logger.info(f"Deleted associated follower records for user: {user_id}")
+
+        # Step 2: Delete associated records from spotify_tokens table
+        tokens_result = supabase.table('spotify_tokens').delete().eq('user_id', user_id).execute()
+        if hasattr(tokens_result, 'error') and tokens_result.error:
+            raise Exception(f"Error deleting spotify_tokens: {tokens_result.error}")
+        logger.info(f"Deleted associated token records for user: {user_id}")
+
+        # Step 3: Delete the user from Auth
+        user_result = supabase.auth.admin.delete_user(user_id)
+        if hasattr(user_result, 'error') and user_result.error:
+            raise Exception(f"Error deleting user: {user_result.error}")
+            
+        logger.info(f"Successfully deleted user: {user_id}")
+        
+        return {
+            "success": True,
+            "message": f"User {user_id} and all associated data successfully deleted"
+        }
+        
+    except Exception as e:
+        logger.error(f"Error during user deletion: {str(e)}")
+        return {
+            "success": False,
+            "error": str(e)
+        }

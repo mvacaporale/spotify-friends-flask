@@ -4,6 +4,7 @@ the top tracks and recommendations of those they follow.
 """
 
 import os
+import traceback
 
 from utils import get_user_access_token, add_top_tracks_to_follower, get_custom_playlists, get_all_followed_playlists, get_user_profile, clear_playlist, get_top_tracks_and_recs, get_playlist_track_uris, add_tracks_to_playlist
 
@@ -27,6 +28,9 @@ if __name__ == "__main__":
     for i, user in enumerate(spotify_users.data):
         print(f"Updating user playlists ({i})", user["email"], user["user_id"])
         user_id = user["user_id"]
+
+        # if user_id != "37e96704-ec5a-4324-b0e3-af03672831f6":
+        #     continue
 
         try:
 
@@ -70,6 +74,7 @@ if __name__ == "__main__":
                 # Note: user_id "follows" followed_id
                 print(f"Adding top tracks of {followed_id} to the user.")
                 add_top_tracks_to_follower(followed_id, user_id)
+                print("Successfully added songs")
 
             # Get the current user's top tracks and recs.
             user_top_uris = get_top_tracks_and_recs(user_id, access_token)
@@ -96,3 +101,4 @@ if __name__ == "__main__":
 
         except Exception as e:
             print(f"An error occurred updating playlists for user={user_id}: {str(e)}")
+            print(traceback.format_exc())

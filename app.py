@@ -19,6 +19,7 @@ from flask_cors import cross_origin
 # Local imports
 from utils import USER_PLAYLISTS
 from utils import supabase
+from utils import delete_user_and_data
 from utils import follow_playlist
 from utils import unfollow_playlist
 from utils import get_custom_playlists
@@ -38,8 +39,10 @@ app = Flask(__name__)
 CLIENT_ID = os.getenv("SPOTIFY_CLIENT_ID")
 CLIENT_SECRET = os.getenv("SPOTIFY_CLIENT_SECRET")
 
-
 SUPABASE_JWT_SECRET = os.getenv("SUPABASE_JWT_SECRET")
+
+# Configure CORS
+CORS(app)
 
 # Configure basic logging
 logging.basicConfig(
@@ -76,7 +79,6 @@ def follow_user(follower_user_id, target_user_id):
     except Exception as e:
         print(f"Error following user: {e}")
         raise e
-
 
 
 @app.route("/create-follow", methods=["POST"])
@@ -235,74 +237,56 @@ def handle_user_created():
         return jsonify({"status": "error", "message": str(e)}), 500
 
 
-@app.route("/save-credentials", methods=["POST", "OPTIONS"])
-def save_credentials():
+@app.after_request
+def after_request(response):
+    """Add CORS headers to every response"""
 
-    if request.method == "OPTIONS":  # CORS preflight
-        return _build_cors_preflight_response()
+    # Get the origin from the request
+    origin = request.headers.get('Origin', '')
+    logger.debug(f"CHECKING CORS headers for origin: {origin}")
+    logger.debug(f"Old Response headers: {dict(response.headers)}")
+    
+    # # Log what we're doing
+    
+    # # Add CORS headers
+    logger.debug(f"Adding CORS headers for origin: {origin}")
+    response.headers['Access-Control-Allow-Origin'] = '*'
+    response.headers.add('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS')
+    response.headers.add('Access-Control-Allow-Headers', '*')
+    response.headers.add('Access-Control-Max-Age', '3600')  # Cache preflight for 1 hour
+    
+    logger.debug(f"New Response headers: {dict(response.headers)}")
+    logger.debug(f"Response status: {response.status_code}")
 
-    print("new")
-    print(request.args)  # Query parameters
-    print(request.form)  # Form data for POST requests
-    print(request.data)  # JSON data for POST requests
-    # access_token = request.data.get('access_token')
-    # print(f"access_token = {access_token}")
-    # if not access_token:
-    #     return {'error': 'Access token is required'}, 400
+    return response
 
-    # Example: Save to the database (replace with your logic)
-    # UserCredentials.objects.create(access_token=access_token)
+@app.route('/delete-user', methods=['DELETE', 'OPTIONS'])
+def delete_user_endpoint():
+    """Handle user deletion."""
+    logger.info(f"Received {request.method} request to /delete-user")
+    logger.debug(f"Request headers: {dict(request.headers)}")
+    
+    # Handle preflight OPTIONS request
+    if request.method == 'OPTIONS':
+        logger.info("Handling OPTIONS request")
+        return '', 200  # CORS headers are added by after_request
 
-    res = {"message": "Credentials saved successfully"}, 200
-    return _corsify_actual_response(res)
+    # Get the user_id from request parameters
+    user_id = request.json["user_id"]
 
+    # Validate user_id
+    if not user_id:
+        return jsonify({"error": "Missing required parameter: user_id"}), 400
+    
+    # Perform the deletion
+    result = delete_user_and_data(user_id)
+    logger.info(jsonify(result))
 
-@app.route("/callback", methods=["GET"])
-def callback():
-    print(request.args)  # Query parameters
-    print(request.form)  # Form data for POST requests
-    print(request.data)  # JSON data for POST requests
-    print(request.json)  # JSON data for POST requests
-    code = request.args.get("refresh_token")
-    # # code = request.args.get('refresh_token')
-    # if not code:
-    #     print('No code, authorization failed')
-
-    # # Exchange the code for an access token
-    # token_url = 'https://accounts.spotify.com/api/token'
-    # auth = (CLIENT_ID, CLIENT_SECRET)
-
-    # headers = {
-    #     'Content-Type': 'application/x-www-form-urlencoded'
-    # }
-
-    # data = {
-    #     'code': code,
-    #     'redirect_uri': REDIRECT_URI,
-    #     'grant_type': 'authorization_code'
-    # }
-
-    # response = requests.post(token_url, headers=headers, data=data, auth=auth)
-    # response_data = response.json()
-
-    # if 'access_token' in response_data:
-    #     access_token = response_data['access_token']
-    #     refresh_token = response_data['refresh_token']
-
-    #     # Send access token to the frontend (React app)
-    #     return jsonify({'access_token': access_token, 'refresh_token': refresh_token})
-
-    # return 'Error during token exchange', 400
-
-    # Get the access token from Spotify using the authorization code
-    # spotipy.oauth2.SpotifyOauthError
-
-    # token_info = sp_oauth.get_access_token(code)
-    # access_token = token_info['access_token']
-
-    print(f"refresh_token = {code}")
-    # return f"we did it: {code}!", 200
-    return redirect("http://localhost:3000"), 200
+    # Return appropriate response based on the result
+    if result["success"]:
+        return jsonify(result), 200
+    else:
+        return jsonify(result), 500
 
 
 if __name__ == "__main__":
@@ -318,46 +302,3 @@ if __name__ == "__main__":
 
     app.run(debug=True)
 
-
-# ------------------ CORS Stuff -----------------
-
-# Apply CORS to your app
-# CORS(app, resources={r"/*": {"origins": "*"}})
-# CORS(app)
-# app.config['CORS_HEADERS'] = 'Content-Type'
-
-
-# @app.before_request
-# def handle_preflight():
-#     print("handling preflight")
-#     print(request.method)
-#     if request.method == "OPTIONS":
-#         print("adding control options")
-#         print(f"res.headers = {res.headers}")
-#         print(f"res.data = {res.data}")
-#         res.headers.add("Access-Control-Allow-Origin", "*")
-#         res.headers.add("Access-Control-Allow-Methods", "POST, OPTIONS")
-#         return res
-
-# @app.route('/save-credentials', methods=['OPTIONS'])
-# def save_credentials_options():
-#     """Handle preflight OPTIONS requests."""
-#     print("handling preflight options")
-#     response = jsonify({'message': 'Preflight request successful'})
-#     response.headers.add("Access-Control-Allow-Origin", "*")
-#     response.headers.add("Access-Control-Allow-Methods", "POST, OPTIONS")
-#     response.headers.add("Access-Control-Allow-Headers", "Content-Type, Authorization")
-#     return response
-
-
-# def _build_cors_preflight_response():
-#     print("handling prerequest in cors preflight")
-#     response = make_response()
-#     response.headers.add("Access-Control-Allow-Origin", "*")
-#     response.headers.add('Access-Control-Allow-Headers', "*")
-#     response.headers.add('Access-Control-Allow-Methods', "*")
-#     return response
-
-# def _corsify_actual_response(response):
-#     response.headers.add("Access-Control-Allow-Origin", "*")
-#     return response
