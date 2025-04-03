@@ -7,6 +7,7 @@ import argparse
 # Third party imports
 import jwt
 import requests
+import traceback
 from flask import Flask
 from flask import jsonify
 from flask import request
@@ -15,6 +16,7 @@ from flask import make_response
 from dotenv import load_dotenv
 from flask_cors import CORS
 from flask_cors import cross_origin
+
 
 # Local imports
 from utils import USER_PLAYLISTS
@@ -30,6 +32,7 @@ from utils import get_user_top_tracks
 from utils import add_tracks_to_playlist
 from utils import add_top_tracks_to_follower
 from utils import check_playlist_following
+from update_group_playlists import run_update_playlists
 
 
 load_dotenv()
@@ -53,6 +56,8 @@ logging.basicConfig(
 
 logger = logging.getLogger("spotifriends")
 
+#Disable logging from the Supabase library
+logging.getLogger("supabase").setLevel(logging.WARNING)
 
 def verify_supabase_webhook(request):
     token = request.headers.get("Authorization")
@@ -287,6 +292,23 @@ def delete_user_endpoint():
         return jsonify(result), 200
     else:
         return jsonify(result), 500
+
+
+@app.route('/cron/update-playlist', methods=['GET'])
+def cron_job():
+    """
+    An endpoint to run a weekly cron job that updates the user's
+    My Top Tracks and Friend Favorites playlists.
+    """
+    try:
+        run_update_playlists()
+        return jsonify({"status": "success"}), 200
+
+    except Exception as e:
+
+        logger.info(f"An error occurred updating playlists: {str(e)}")
+        logger.info(traceback.format_exc())
+        return jsonify({"status": "failed"}), 500
 
 
 if __name__ == "__main__":

@@ -40,6 +40,9 @@ logging.basicConfig(
 
 logger = logging.getLogger("spotifriends")
 
+#Disable logging from the Supabase library
+logging.getLogger("supabase").setLevel(logging.WARNING)
+logging.getLogger("httpx").setLevel(logging.WARNING)
 
 def refresh_access_token(client_id, client_secret, refresh_token):
 

@@ -14,5 +14,11 @@
             "src": "/(.*)",
             "dest": "app.py"
         }
-    ]
+    ],
+    "crons": [
+        {
+          "path": "/cron/update-playlist",
+          "schedule": "0 0 * * 4"  
+        }
+      ]
 }
