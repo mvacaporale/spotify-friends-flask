@@ -107,8 +107,8 @@ def handle_new_follower_relationship():
 
         if user1_playlists is None or user2_playlists is None:
             raise Exception("At least one of the users are not in our database: "
-                            f"playlists for user1 ({user1}) {user1_playlists is None}, "
-                            f"playlists for user2 ({user2}) {user2_playlists is None}")
+                            f"playlists made for user1 ({user1}): {user1_playlists is not None}, "
+                            f"playlists made for user2 ({user2}): {user2_playlists is not None}")
 
         user1_toptracks = user1_playlists["individual_playlist"]
         user2_toptracks = user2_playlists["individual_playlist"]
